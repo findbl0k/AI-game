@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Endless Runner</title>
+    <style>
+        .game-container {
+            width: 800px;
+            height: 200px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid black;
+            background-color: #f0f0f0;
+        }
+
+        .player {
+            width: 40px;
+            height: 40px;
+            background-color: #333;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+        }
+
+        .obstacle {
+            width: 20px;
+            height: 40px;
+            background-color: #f00;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+
+        .jumping {
+            animation: jump 0.5s linear;
+        }
+
+        @keyframes jump {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-100px); }
+            100% { transform: translateY(0); }
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            display: none;
+        }
+
+        .score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="player"></div>
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="game-over">Game Over! Press Space to restart</div>
+    </div>
+
+    <script>
+        const player = document.querySelector('.player');
+        const gameContainer = document.querySelector('.game-container');
+        const scoreElement = document.getElementById('score');
+        const gameOverScreen = document.querySelector('.game-over');
+        
+        let isJumping = false;
+        let gravity = 0.9;
+        let gameRunning = true;
+        let score = 0;
+        let obstacles = [];
+        let obstacleInterval;
+
+        function jump() {
+            if (!isJumping && gameRunning) {
+                isJumping = true;
+                player.classList.add('jumping');
+                
+                setTimeout(() => {
+                    player.classList.remove('jumping');
+                    isJumping = false;
+                }, 500);
+            }
+        }
+
+        function createObstacle() {
+            if (!gameRunning) return;
+            
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            gameContainer.appendChild(obstacle);
+            obstacles.push(obstacle);
+
+            let position = 800;
+            
+            function moveObstacle() {
+                if (position > -20) {
+                    position -= 5;
+                    obstacle.style.right = `${800 - position}px`;
+
+                    // Collision detection
+                    const playerRect = player.getBoundingClientRect();
+                    const obstacleRect = obstacle.getBoundingClientRect();
+
+                    if (
+                        playerRect.right > obstacleRect.left &&
+                        playerRect.left < obstacleRect.right &&
+                        playerRect.bottom > obstacleRect.top &&
+                        !isJumping
+                    ) {
+                        gameOver();
+                    }
+                } else {
+                    obstacle.remove();
+                    obstacles = obstacles.filter(obs => obs !== obstacle);
+                    score++;
+                    scoreElement.textContent = score;
+                    return;
+                }
+
+                if (gameRunning) {
+                    requestAnimationFrame(moveObstacle);
+                }
+            }
+
+            moveObstacle();
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            gameOverScreen.style.display = 'block';
+            clearInterval(obstacleInterval);
+        }
+
+        function resetGame() {
+            gameRunning = true;
+            score = 0;
+            scoreElement.textContent = score;
+            gameOverScreen.style.display = 'none';
+            
+            // Clear existing obstacles
+            obstacles.forEach(obstacle => obstacle.remove());
+            obstacles = [];
+            
+            // Restart obstacle generation
+            obstacleInterval = setInterval(createObstacle, 2000);
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                if (gameRunning) {
+                    jump();
+                } else {
+                    resetGame();
+                }
+            }
+        });
+
+        // Start the game
+        obstacleInterval = setInterval(createObstacle, 2000);
+    </script>
+</body>
+</html>
